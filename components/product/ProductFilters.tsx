@@ -53,7 +53,7 @@ export default function ProductFilters({
           type="number"
           min="0"
           step="0.01"
-          placeholder="0.00"
+          placeholder="₹ Min"
           value={minPrice}
           onChange={(e) => onMinPriceChange(e.target.value)}
           className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] text-[#111827] outline-none transition-colors focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
@@ -67,7 +67,7 @@ export default function ProductFilters({
           type="number"
           min="0"
           step="0.01"
-          placeholder="0.00"
+          placeholder="₹ Max"
           value={maxPrice}
           onChange={(e) => onMaxPriceChange(e.target.value)}
           className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] text-[#111827] outline-none transition-colors focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"

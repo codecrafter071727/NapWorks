@@ -142,7 +142,7 @@ export default function AddProductForm() {
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="Enter Price"
+                placeholder="Enter Price (₹)"
                 className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-4 text-[14px] text-[#111827] outline-none transition-colors focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
               />
             </div>
