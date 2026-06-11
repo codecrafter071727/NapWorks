@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Images, X } from "lucide-react";
+import { X } from "lucide-react";
 import ImageUploadSlot from "./ImageUploadSlot";
 import type { Product } from "@/types/product";
-import {
-  validateImageFile,
-  validateProductName,
-} from "@/lib/validations/product";
+import { validateProductName } from "@/lib/validations/product";
 import { MAX_IMAGES_PER_PRODUCT } from "@/lib/constants";
+import { revokeBlobPreview } from "@/lib/image-slots";
 
 interface ImageSlot {
   existingUrl: string | null;
@@ -48,7 +46,6 @@ export default function EditProductModal({
   onClose,
   onSuccess,
 }: EditProductModalProps) {
-  const bulkInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(product.name);
   const [price, setPrice] = useState(String(product.price));
   const [slots, setSlots] = useState<ImageSlot[]>(() =>
@@ -112,48 +109,19 @@ export default function EditProductModal({
     setError(null);
   };
 
-  const handleBulkSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-
-    if (files.length === 0) return;
-
-    if (files.length > MAX_IMAGES_PER_PRODUCT) {
-      setError(`Maximum ${MAX_IMAGES_PER_PRODUCT} images allowed`);
-      return;
-    }
-
-    for (const file of files) {
-      const validationError = validateImageFile(file);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-    }
-
+  const handleMultipleSelect = (startIndex: number, files: File[]) => {
     setSlots((prev) => {
-      prev.forEach((slot) => {
-        if (slot.preview?.startsWith("blob:")) {
-          URL.revokeObjectURL(slot.preview);
-        }
-      });
+      const next = [...prev];
 
-      const next: ImageSlot[] = Array.from(
-        { length: MAX_IMAGES_PER_PRODUCT },
-        () => ({
-          existingUrl: null,
-          file: null,
-          preview: null,
-        })
-      );
-
-      files.forEach((file, index) => {
+      for (let index = startIndex; index < startIndex + files.length; index++) {
+        revokeBlobPreview(next[index]?.preview ?? null);
+        const file = files[index - startIndex];
         next[index] = {
           existingUrl: null,
           file,
           preview: URL.createObjectURL(file),
         };
-      });
+      }
 
       return next;
     });
@@ -321,28 +289,15 @@ export default function EditProductModal({
               <p className="mt-1 text-[13px] text-[#2563EB]">
                 Note : Format photos SVG, PNG, or JPG (Max size 4mb)
               </p>
-
-              <button
-                type="button"
-                onClick={() => bulkInputRef.current?.click()}
-                className="mt-3 flex h-10 items-center gap-2 rounded-lg border border-[#93C5FD] bg-[#EFF6FF] px-4 text-[13px] font-medium text-[#2563EB] transition-colors hover:bg-[#DBEAFE]"
-              >
-                <Images className="h-4 w-4" />
-                Select multiple images at once
-              </button>
-              <input
-                ref={bulkInputRef}
-                type="file"
-                multiple
-                accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
-                onChange={handleBulkSelect}
-                className="hidden"
-              />
+              <p className="mt-2 text-[12px] text-[#9CA3AF]">
+                Click any photo box to select one or multiple images (up to 4).
+              </p>
 
               <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
                 {slots.map((slot, index) => (
                   <div key={index}>
                     <ImageUploadSlot
+                      slotIndex={index}
                       label={`Photo ${index + 1}`}
                       preview={slot.preview}
                       onChange={(file, preview) => {
@@ -352,6 +307,7 @@ export default function EditProductModal({
                           updateSlot(index, file, preview);
                         }
                       }}
+                      onMultipleSelect={handleMultipleSelect}
                       onError={setError}
                     />
                   </div>

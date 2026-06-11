@@ -1,14 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Images } from "lucide-react";
 import ImageUploadSlot from "./ImageUploadSlot";
-import {
-  validateImageFile,
-  validateProductName,
-} from "@/lib/validations/product";
+import { validateProductName } from "@/lib/validations/product";
 import { MAX_IMAGES_PER_PRODUCT } from "@/lib/constants";
+import { revokeBlobPreview } from "@/lib/image-slots";
 
 interface ImageSlot {
   file: File | null;
@@ -23,7 +20,6 @@ const createEmptySlots = (): ImageSlot[] =>
 
 export default function AddProductForm() {
   const router = useRouter();
-  const bulkInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [slots, setSlots] = useState<ImageSlot[]>(createEmptySlots);
@@ -33,46 +29,26 @@ export default function AddProductForm() {
   const updateSlot = (index: number, file: File | null, preview: string | null) => {
     setSlots((prev) => {
       const next = [...prev];
-      if (next[index]?.preview && next[index].preview !== preview) {
-        URL.revokeObjectURL(next[index].preview!);
-      }
+      revokeBlobPreview(next[index]?.preview ?? null);
       next[index] = { file, preview };
       return next;
     });
     setError(null);
   };
 
-  const handleBulkSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = "";
-
-    if (files.length === 0) return;
-
-    if (files.length > MAX_IMAGES_PER_PRODUCT) {
-      setError(`Maximum ${MAX_IMAGES_PER_PRODUCT} images allowed`);
-      return;
-    }
-
-    for (const file of files) {
-      const validationError = validateImageFile(file);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-    }
-
+  const handleMultipleSelect = (startIndex: number, files: File[]) => {
     setSlots((prev) => {
-      prev.forEach((slot) => {
-        if (slot.preview) URL.revokeObjectURL(slot.preview);
-      });
+      const next = [...prev];
 
-      const next = createEmptySlots();
-      files.forEach((file, index) => {
+      for (let index = startIndex; index < startIndex + files.length; index++) {
+        revokeBlobPreview(next[index]?.preview ?? null);
+        const file = files[index - startIndex];
         next[index] = {
           file,
           preview: URL.createObjectURL(file),
         };
-      });
+      }
+
       return next;
     });
     setError(null);
@@ -181,36 +157,20 @@ export default function AddProductForm() {
             <p className="mt-2 text-[12px] leading-relaxed text-[#2563EB] sm:text-[13px]">
               Note : Format photos SVG, PNG, or JPG (Max size 4mb)
             </p>
-
-            <button
-              type="button"
-              onClick={() => bulkInputRef.current?.click()}
-              className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#93C5FD] bg-[#EFF6FF] px-4 text-[12px] font-medium text-[#2563EB] transition-colors hover:bg-[#DBEAFE] sm:w-auto sm:text-[13px]"
-            >
-              <Images className="h-4 w-4 shrink-0" />
-              <span className="text-center">Select multiple images at once</span>
-            </button>
-            <input
-              ref={bulkInputRef}
-              type="file"
-              multiple
-              accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
-              onChange={handleBulkSelect}
-              className="hidden"
-            />
-
-            <p className="mt-3 text-[12px] text-[#9CA3AF]">
-              Or upload one by one using the slots below. Click the red X to
-              remove a selected image.
+            <p className="mt-2 text-[12px] text-[#9CA3AF]">
+              Click any photo box to select one or multiple images (up to 4).
+              Use the red X to remove a selected image.
             </p>
 
             <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-5 sm:gap-4 lg:grid-cols-4">
               {slots.map((slot, index) => (
                 <ImageUploadSlot
                   key={index}
+                  slotIndex={index}
                   label={`Photo ${index + 1}`}
                   preview={slot.preview}
                   onChange={(file, preview) => updateSlot(index, file, preview)}
+                  onMultipleSelect={handleMultipleSelect}
                   onError={setError}
                 />
               ))}

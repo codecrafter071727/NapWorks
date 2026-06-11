@@ -3,40 +3,48 @@
 import { useRef } from "react";
 import Image from "next/image";
 import { ImageIcon, X } from "lucide-react";
-import { validateImageFile } from "@/lib/validations/product";
+import { validateMultipleImageFiles } from "@/lib/image-slots";
 
 interface ImageUploadSlotProps {
   label: string;
+  slotIndex: number;
   preview: string | null;
   onChange: (file: File | null, preview: string | null) => void;
+  onMultipleSelect: (startIndex: number, files: File[]) => void;
   onError: (message: string) => void;
 }
 
 export default function ImageUploadSlot({
   label,
+  slotIndex,
   preview,
   onChange,
+  onMultipleSelect,
   onError,
 }: ImageUploadSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
 
-    if (!file) {
+    if (files.length === 0) {
       return;
     }
 
-    const validationError = validateImageFile(file);
+    const validationError = validateMultipleImageFiles(files, slotIndex);
     if (validationError) {
       onError(validationError);
-      e.target.value = "";
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
-    onChange(file, objectUrl);
-    e.target.value = "";
+    if (files.length === 1) {
+      const file = files[0];
+      onChange(file, URL.createObjectURL(file));
+      return;
+    }
+
+    onMultipleSelect(slotIndex, files);
   };
 
   const handleRemove = (e: React.MouseEvent) => {
@@ -92,6 +100,7 @@ export default function ImageUploadSlot({
       <input
         ref={inputRef}
         type="file"
+        multiple
         accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg"
         onChange={handleFileChange}
         className="hidden"
