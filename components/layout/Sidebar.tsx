@@ -20,7 +20,7 @@ interface SidebarProps {
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home, count: null },
   { label: "Product", href: "/product", icon: Package, countKey: "product" as const },
-  { label: "Transaction", href: "#", icon: FileText, count: 441 },
+  { label: "Transaction", href: "#", icon: FileText, count: null },
   { label: "Customers", href: "#", icon: Users, count: null },
   { label: "Sales Report", href: "#", icon: LineChart, count: null },
 ];
